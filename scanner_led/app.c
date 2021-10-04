@@ -74,7 +74,7 @@ typedef enum {
   running
 } conn_state_t;
 
-// may be all are not needed
+
 typedef struct {
   uint8_t  connection_handle;
   uint16_t server_address;
