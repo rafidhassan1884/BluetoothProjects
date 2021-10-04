@@ -34,12 +34,6 @@
 #include "gatt_db.h"
 #include "app.h"
 #include "sl_simple_button_instances.h"
-#ifdef SL_COMPONENT_CATALOG_PRESENT
-#include "sl_component_catalog.h"
-#endif // SL_COMPONENT_CATALOG_PRESENT
-#ifdef SL_CATALOG_CLI_PRESENT
-#include "sl_cli.h"
-#endif
 
 
 #define CONN_INTERVAL_MIN             80   //100ms
@@ -168,7 +162,7 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
                                                    CONN_MIN_CE_LENGTH,
                                                    CONN_MAX_CE_LENGTH);
       app_assert_status(sc);
-      // Start scanning - looking for thermometer devices
+      // Start scanning - looking for led devices
       app_log_info("setting scanner active.\n");
       sc = sl_bt_scanner_start(gap_1m_phy, scanner_discover_generic);
       app_assert_status_f(sc,
@@ -227,7 +221,7 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
 
     case sl_bt_evt_gatt_procedure_completed_id:
       if (conn_state == discover_services) {
-              // Discover thermometer characteristic on the slave device
+              // Discover led characteristic on the slave device
               sc = sl_bt_gatt_discover_characteristics_by_uuid(evt->data.evt_gatt_procedure_completed.connection,
                                                                connection.led_service_handle,
                                                                sizeof(led_char),
@@ -254,14 +248,6 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
       sc = sl_bt_scanner_start(gap_1m_phy, scanner_discover_generic);
       app_assert_status(sc);
       break;
-
-    // -------------------------------
-    // This event indicates that the value of an attribute in the local GATT
-    // database was changed by a remote GATT client.
-
-    // -------------------------------
-    // This event occurs when the remote device enabled or disabled the
-    // notification.
 
     ///////////////////////////////////////////////////////////////////////////
     // Add additional event handlers here as your application requires!      //
