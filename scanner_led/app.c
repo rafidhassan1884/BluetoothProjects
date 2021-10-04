@@ -55,16 +55,10 @@
 #define SCAN_WINDOW                   16   //10ms
 #define SCAN_PASSIVE                  0
 
-#define TEMP_INVALID                  ((uint8_t)0xFFu)
-#define RSSI_INVALID                  ((int8_t)0x7F)
 #define CONNECTION_HANDLE_INVALID     ((uint8_t)0xFFu)
 #define SERVICE_HANDLE_INVALID        ((uint32_t)0xFFFFFFFFu)
 #define CHARACTERISTIC_HANDLE_INVALID ((uint16_t)0xFFFFu)
 #define TABLE_INDEX_INVALID           ((uint8_t)0xFFu)
-#define TX_POWER_INVALID              ((uint8_t)0x7C)
-#define TX_POWER_CONTROL_ACTIVE       ((uint8_t)0x00)
-#define TX_POWER_CONTROL_INACTIVE     ((uint8_t)0x01)
-#define PRINT_TX_POWER_DEFAULT        (false)
 
 #if SL_BT_CONFIG_MAX_CONNECTIONS < 1
   #error At least 1 connection has to be enabled!
@@ -83,10 +77,6 @@ typedef enum {
 // may be all are not needed
 typedef struct {
   uint8_t  connection_handle;
-  int8_t   rssi;
-  bool     power_control_active;
-  int8_t   tx_power;
-  int8_t   remote_tx_power;
   uint16_t server_address;
   uint32_t led_service_handle;
   uint16_t led_characteristic_handle;
@@ -113,7 +103,6 @@ static void add_connection(uint8_t connection, uint16_t address);
 static void remove_connection(uint8_t connection);
 static bd_addr *read_and_cache_bluetooth_address(uint8_t *address_type_out);
 static void print_bluetooth_address(void);
-// Print RSSI and temperature values
 void sl_button_on_change(const sl_button_t *handle);
 
 /**************************************************************************//**
@@ -228,13 +217,6 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
                                                         sizeof(led_service),
                                                         (const uint8_t*)led_service);
       app_assert_status(sc);
-
-      // Set remote connection power reporting - needed for Power Control
-      sc = sl_bt_connection_set_remote_power_reporting(
-        evt->data.evt_connection_opened.connection,
-        connection_power_reporting_enable);
-      app_assert_status(sc);
-
       conn_state = discover_services;
       app_log_info("Service discovered\n");
       break;
@@ -269,7 +251,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
       }
       // If service discovery finished
       if (conn_state == discover_services && conn_properties[table_index].led_service_handle != SERVICE_HANDLE_INVALID) {
-        // Discover thermometer characteristic on the slave device
+        // Discover led characteristic on the slave device
         sc = sl_bt_gatt_discover_characteristics_by_uuid(evt->data.evt_gatt_procedure_completed.connection,
                                                          conn_properties[table_index].led_service_handle,
                                                          sizeof(led_char),
@@ -320,23 +302,7 @@ void sl_bt_on_event(sl_bt_msg_t* evt)
       }
       break;
     // -------------------------------
-    // This event is generated when RSSI value was measured
-    case sl_bt_evt_connection_rssi_id:
-      table_index = find_index_by_connection_handle(evt->data.evt_connection_rssi.connection);
-      if (table_index != TABLE_INDEX_INVALID) {
-        conn_properties[table_index].rssi = evt->data.evt_connection_rssi.rssi;
-      }
-      break;
-
-    case sl_bt_evt_connection_remote_tx_power_id:
-      table_index = find_index_by_connection_handle(
-        evt->data.evt_connection_remote_tx_power.connection);
-
-      if (table_index != TABLE_INDEX_INVALID) {
-        conn_properties[table_index].remote_tx_power =
-          evt->data.evt_connection_remote_tx_power.power_level;
-      }
-      break;
+      
     case sl_bt_evt_system_external_signal_id:
       //Process external signals
           if (evt->data.evt_system_external_signal.extsignals == 1)  // 1 = BTN0
@@ -373,10 +339,6 @@ static void init_properties(void)
     conn_properties[i].led_service_handle = SERVICE_HANDLE_INVALID;
     conn_properties[i].led_characteristic_handle = CHARACTERISTIC_HANDLE_INVALID;
     conn_properties[i].state = (uint8_t) 0x00;
-    conn_properties[i].rssi = RSSI_INVALID;
-    conn_properties[i].power_control_active = TX_POWER_CONTROL_INACTIVE;
-    conn_properties[i].tx_power = TX_POWER_INVALID;
-    conn_properties[i].remote_tx_power = TX_POWER_INVALID;
   }
 }
 
@@ -439,10 +401,6 @@ static void remove_connection(uint8_t connection)
     conn_properties[i].led_service_handle = SERVICE_HANDLE_INVALID;
     conn_properties[i].led_characteristic_handle = CHARACTERISTIC_HANDLE_INVALID;
     conn_properties[i].state = TEMP_INVALID;
-    conn_properties[i].rssi = RSSI_INVALID;
-    conn_properties[i].power_control_active = TX_POWER_CONTROL_INACTIVE;
-    conn_properties[i].tx_power = TX_POWER_INVALID;
-    conn_properties[i].remote_tx_power = TX_POWER_INVALID;
   }
 }
 
@@ -499,16 +457,6 @@ void sl_button_on_change(const sl_button_t *handle)
 {
   sl_simple_button_context_t *ctxt = ((sl_simple_button_context_t*)handle[0].context);
   if(ctxt->state){
-      ctxt->history += 1;
       sl_bt_external_signal(1);
   }
 }
-
-#ifdef SL_CATALOG_CLI_PRESENT
-void hello(sl_cli_command_arg_t *arguments)
-{
-  (void) arguments;
-  print_bluetooth_address();
-}
-
-#endif // SL_CATALOG_CLI_PRESENT
