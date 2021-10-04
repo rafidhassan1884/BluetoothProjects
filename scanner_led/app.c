@@ -27,8 +27,6 @@
  * 3. This notice may not be removed or altered from any source distribution.
  *
  ******************************************************************************/
-#include <stdbool.h>
-#include <math.h>
 #include "em_common.h"
 #include "app_log.h"
 #include "app_assert.h"
