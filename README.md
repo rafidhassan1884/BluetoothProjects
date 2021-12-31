@@ -1,3 +1,2 @@
 # BluetoothProjects
-this project is very basic and attempts to switch led of one bluetooth module using another bluetooth module.
-the device used as advertiser is EFRBG22 thunderboard. and device used as scanner is BGM220P.
+This Repository contains codes implementing some simple projects for Bluetooth modules available in market manufactured by Silicon Labs.
