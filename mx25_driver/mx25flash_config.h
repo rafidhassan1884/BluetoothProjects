@@ -32,16 +32,17 @@
 #include "em_gpio.h"
 
 #define MX25_PORT_MOSI         gpioPortC
-#define MX25_PIN_MOSI          29
+#define MX25_PIN_MOSI          02
 #define MX25_PORT_MISO         gpioPortC
-#define MX25_PIN_MISO          28
+#define MX25_PIN_MISO          00
 #define MX25_PORT_SCLK         gpioPortC
-#define MX25_PIN_SCLK          30
+#define MX25_PIN_SCLK          01
 #define MX25_PORT_CS           gpioPortC
-#define MX25_PIN_CS            31
+#define MX25_PIN_CS            03
 
-#define MX25_USART             USART1
-#define MX25_USART_CLK         cmuClock_USART1
+#define MX25_USART             USART0
+#define MX25_USART_CLK         cmuClock_USART0
+
 
 #endif // MX25CONFIG_H
 
