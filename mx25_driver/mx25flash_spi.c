@@ -56,8 +56,20 @@ void MX25_init( void )
    GPIO_PinModeSet( MX25_PORT_SCLK, MX25_PIN_SCLK, gpioModePushPull, 1 );
    GPIO_PinModeSet( MX25_PORT_CS,   MX25_PIN_CS,   gpioModePushPull, 1 );
 
-   //MX25_USART->ROUTELOC0 = ( USART_ROUTELOC0_RXLOC_LOC11 | USART_ROUTELOC0_TXLOC_LOC11 | USART_ROUTELOC0_CLKLOC_LOC11 );
-   //MX25_USART->ROUTEPEN  = ( USART_ROUTEPEN_RXPEN | USART_ROUTEPEN_TXPEN | USART_ROUTEPEN_CLKPEN );
+#ifdef _GPIO_USART_ROUTEEN_MASK
+  GPIO->USARTROUTE[MX25_USART_NO].CLKROUTE  = ((MX25_PORT_SCLK << _GPIO_USART_CLKROUTE_PORT_SHIFT)
+                                                                   | (MX25_PIN_SCLK  << _GPIO_USART_CLKROUTE_PIN_SHIFT));
+  GPIO->USARTROUTE[MX25_USART_NO].RXROUTE   = ((MX25_PORT_MISO << _GPIO_USART_RXROUTE_PORT_SHIFT)
+                                                                   | (MX25_PIN_MISO  << _GPIO_USART_RXROUTE_PIN_SHIFT));
+  GPIO->USARTROUTE[MX25_USART_NO].TXROUTE   = ((MX25_PORT_MOSI << _GPIO_USART_TXROUTE_PORT_SHIFT)
+                                                                   | (MX25_PIN_MOSI  << _GPIO_USART_TXROUTE_PIN_SHIFT));
+  GPIO->USARTROUTE[MX25_USART_NO].ROUTEEN   = (GPIO_USART_ROUTEEN_RXPEN
+                                                                   | GPIO_USART_ROUTEEN_TXPEN
+                                                                   | GPIO_USART_ROUTEEN_CLKPEN);
+#else
+  MX25_USART->ROUTELOC0 = ( USART_ROUTELOC0_RXLOC_LOC11 | USART_ROUTELOC0_TXLOC_LOC11 | USART_ROUTELOC0_CLKLOC_LOC11 );
+  MX25_USART->ROUTEPEN  = ( USART_ROUTEPEN_RXPEN | USART_ROUTEPEN_TXPEN | USART_ROUTEPEN_CLKPEN );
+#endif
 
    /* Wait for flash warm-up */
    Initial_Spi();
