@@ -32,11 +32,14 @@
 #include "sl_bluetooth.h"
 #include "gatt_db.h"
 #include "app.h"
+#include "app_log.h"
+#include "mx25flash_spi.h"
+//#include "btl_driver_spi.h"
 
 // The advertising set handle allocated from Bluetooth stack.
 static uint8_t advertising_set_handle = 0xff;
 
-#define USERDATA ((uint32_t *) USERDATA_BASE)
+#define USERDATA USERDATA_BASE
 uint32_t connection;
 uint32_t characteristic;
 uint32_t userData[] = {
@@ -128,6 +131,10 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
     // -------------------------------
     // This event indicates that a new connection was opened.
     case sl_bt_evt_connection_opened_id:
+      MX25_init();
+      uint32_t ID=0xffffffff;
+      uint8_t msg = MX25_RDID(&ID);
+      app_log_info("message = %d, ID = %x\t", msg,ID);
       break;
 
     // -------------------------------
@@ -145,41 +152,24 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
     // Add additional event handlers here as your application requires!      //
     ///////////////////////////////////////////////////////////////////////////
     case sl_bt_evt_gatt_server_user_write_request_id:
-          connection = evt->data.evt_gatt_server_user_write_request.connection;
-          characteristic = evt->data.evt_gatt_server_user_write_request.characteristic;
-
-          MX25_init();
-
-          uint32_t * userDataPage = (uint32_t *) USERDATA;
-          if (characteristic == gattdb_read_write) {
-            // Write user supplied value
-              if (evt->data.evt_gatt_server_attribute_value.value.data[0]) {
-                  //length of data to be programmed to the page.
-                  uint8_t datalen = evt->data.evt_gatt_server_attribute_value.value.len;
-                  //address of the data to be programmed to page.
-                  uint8_t * programAddress = evt->data.evt_gatt_server_attribute_value.value.data;
-                  MX25_PP(USERDATA, programAddress, datalen);
-                  //update the base location of empty page
-                  //USERDATA = (uint32_t *) USERDATA[datalen]; //pointer pointing to the beginning of empty page.
-              }
-            sc = sl_bt_gatt_server_send_user_write_response(
-                evt->data.evt_gatt_server_user_write_request.connection,
-                gattdb_read_write, SL_STATUS_OK);
-              app_assert_status(sc);
-              //MSC_ErasePage(userDataPage);
-              //MSC_WriteWord(userDataPage, userData, sizeof(userData));
-          }
-          break;
+      break;
 
         case sl_bt_evt_gatt_server_user_read_request_id:
-          connection = evt->data.evt_gatt_server_user_write_request.connection;
-          characteristic = evt->data.evt_gatt_server_user_write_request.characteristic;
+          connection = evt->data.evt_gatt_server_user_read_request.connection;
+          characteristic = evt->data.evt_gatt_server_user_read_request.characteristic;
           if (characteristic == gattdb_read_write){
               uint16_t sent_len;
-              uint32_t read_data[2];
-              read_data[0] = USERDATA[0];
-              read_data[1] = USERDATA[1];
-              sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_write_request.connection,
+              uint8_t read_data[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+              uint8_t write_data[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
+              for(uint8_t i = 0; i < 8; i++)
+                app_log_info("read_data = %x",read_data[i]);
+              app_log_info("\n");
+              msg = MX25_PP(USERDATA, write_data, 8);
+              msg = MX25_DREAD(USERDATA, read_data, 8);
+              app_log_info("reading from %x address. Message = %d",USERDATA, msg);
+              for(uint8_t i = 0; i < 8; i++)
+                app_log_info("read_data = %x",read_data[i]);
+              sc = sl_bt_gatt_server_send_user_read_response(evt->data.evt_gatt_server_user_read_request.connection,
                                                              gattdb_read_write, SL_STATUS_OK, sizeof(read_data), read_data, &sent_len);
               app_assert_status(sc);
               app_log_info("sent read response.\n");
